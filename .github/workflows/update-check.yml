@@ -1,0 +1,49 @@
+name: Check for Updates
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Run tests
+        run: ./gradlew test
+
+      - name: Check for Updates
+        run: |
+          curl -s https://api.github.com/repos/<username>/<repository>/releases/latest | grep "tag_name" | cut -d '"' -f 4 > latest_version.txt
+          if [ -f "version.txt" ]; then
+            current_version=$(cat version.txt)
+          else
+            current_version="0.0.0"
+          fi
+          latest_version=$(cat latest_version.txt)
+          if [ "$current_version" != "$latest_version" ]; then
+            echo "Update available: $latest_version"
+            # Opcjonalnie: Wyślij powiadomienie lub wykonaj inne akcje
+          else
+            echo "No updates available."
+          fi
