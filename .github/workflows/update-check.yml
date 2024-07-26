@@ -34,6 +34,7 @@ jobs:
 
       - name: Check for Updates
         run: |
+          echo "Fetching latest release version from GitHub API..."
           curl -s https://api.github.com/repos/MatiYT14/BloxFruits_StockMonitor/releases/latest | grep "tag_name" | cut -d '"' -f 4 > latest_version.txt
           if [ -f "version.txt" ]; then
             current_version=$(cat version.txt)
@@ -41,6 +42,8 @@ jobs:
             current_version="0.0.0"
           fi
           latest_version=$(cat latest_version.txt)
+          echo "Current version: $current_version"
+          echo "Latest version: $latest_version"
           if [ "$current_version" != "$latest_version" ]; then
             echo "Update available: $latest_version"
             # Opcjonalnie: Wyślij powiadomienie lub wykonaj inne akcje
