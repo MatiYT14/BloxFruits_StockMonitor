@@ -1,4 +1,4 @@
-name: Check for Updates
+name: Build and Release APK
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  check-updates:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,38 +16,29 @@ jobs:
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'  # Możesz użyć innych dystrybucji, np. 'zulu', 'adoptopenjdk'
           java-version: '11'
 
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v3
+      - name: Build APK
+        run: ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
         with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          name: apk
+          path: app/build/outputs/apk/release/BloxFruits_Stock.apk
 
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Create Release
+        uses: gh-actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Release notes
 
-      - name: Run tests
-        run: ./gradlew test
-
-      - name: Check for Updates
-        run: |
-          echo "Fetching latest release version from GitHub API..."
-          curl -s https://api.github.com/repos/MatiYT14/BloxFruits_StockMonitor/releases/latest | grep "tag_name" | cut -d '"' -f 4 > latest_version.txt
-          if [ -f "version.txt" ]; then
-            current_version=$(cat version.txt)
-          else
-            current_version="0.0.0"
-          fi
-          latest_version=$(cat latest_version.txt)
-          echo "Current version: $current_version"
-          echo "Latest version: $latest_version"
-          if [ "$current_version" != "$latest_version" ]; then
-            echo "Update available: $latest_version"
-            # Opcjonalnie: Wyślij powiadomienie lub wykonaj inne akcje
-          else
-            echo "No updates available."
-          fi
+      - name: Upload Release Asset
+        uses: gh-actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/release/BloxFruits_Stock.apk
+          asset_name: BloxFruits_Stock.apk
+          asset_content_type: application/vnd.android.package-archive
